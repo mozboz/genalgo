@@ -1,6 +1,6 @@
 
 from g1.arithmeticgenome import ArithmeticGenome
-from g1.population import Individual, Population
+from g1.population import Individual, Population, PopulationAndSelectionConfig
 
 import random
 import logging
@@ -8,6 +8,9 @@ import cProfile, pstats
 import datetime, time
 import Queue
 import threading
+
+FORMAT = '%(asctime)-15s %(message)s'
+logging.basicConfig(format=FORMAT)
 
 # r = reader(ArithmeticGenome)
 # print r.run(['9', '5', '5', '.', 'O', '2', '4', '-', '5', 'N', '.', '2', '1', 'N', '.', '*', '*', '6', '5', '7'])
@@ -20,6 +23,7 @@ import threading
 # d.mutateBreedWithPartnerMoveStrip(e, 0.5)
 # print d.dna
 # exit(0)
+
 
 class PrintThread(threading.Thread):
     def __init__(self, filename, printQueue):
@@ -37,11 +41,10 @@ class PrintThread(threading.Thread):
 
 
 class Task(object):
-    def __init__(self, problem, type, populationSize, dnaLength, iterations):
+    def __init__(self, problem, type, populationConfig, iterations):
         self.problem = problem
         self.type = type
-        self.populationSize = populationSize
-        self.dnaLength = dnaLength
+        self.populationConfig = populationConfig
         self.iterations = iterations
 
 
@@ -64,10 +67,9 @@ class TaskRunner(threading.Thread):
         print self.__repr__() + " took task"
         p = Population(
             self.systemLog,
-            populationSize=task.populationSize,
-            dnaLength=task.dnaLength,
             genomeType=task.type,
             fitnessFunction=task.problem,
+            populationAndSelectionConfig=task.populationConfig
         )
 
         start = time.time()
@@ -75,7 +77,8 @@ class TaskRunner(threading.Thread):
         timeRan = time.time() - start
 
         logLine = "{}\t{}\t{}\t{}\t{}\t{}\t{}".\
-            format(p.finished(), timeRan, p.generation, p.population[0].fitness, task.populationSize, task.dnaLength, "".join(p.population[0].dna))
+            format(p.finished(), timeRan, p.generation, p.population[0].fitness, task.populationConfig.populationSize,
+                   task.populationConfig.dnaLength, "".join(p.population[0].dna))
 
         printQueue.put(logLine)
 
@@ -84,7 +87,7 @@ class TaskRunner(threading.Thread):
 random.seed()
 
 systemLog = logging.getLogger(__name__)
-systemLog.setLevel(logging.DEBUG)
+systemLog.setLevel(logging.WARNING)
 
 
 st = datetime.datetime.fromtimestamp(time.time()).strftime('%Y%m%d%H%M%S')
@@ -98,7 +101,7 @@ printThread.start()
 
 # Crate job queue to distribute jobs to worker threads
 taskQueue = Queue.Queue()
-threads = 4
+threads = 1
 
 for k in range(0,threads):
     p = TaskRunner(systemLog, taskQueue, printQueue)
@@ -108,9 +111,13 @@ for k in range(0,threads):
 problem = lambda x: 0.333
 populationSize=60
 
-for dnaLength in range(5,51,5):
+populationConfig = PopulationAndSelectionConfig(60, 20, 0.0001, 20, 2, 0.16, 0.32, 0.33, 1, 1, 1, 1, 1, 0, 1, 0.25, 0.25, 0.4, 0.5, 1)
+
+
+for dnaLength in range(10,51,5):
     for k in range(0,100):
-        t = Task(problem, ArithmeticGenome, 60, dnaLength, 1000)
+        populationConfig = PopulationAndSelectionConfig(populationSize,dnaLength,0.0001, 20, 2, 0.16, 0.32, 0, 0.33, 1, 1, 1, 1, 0, 1, 0.25, 0.25, 0.4, 0.5, 1)
+        t = Task(problem, ArithmeticGenome, populationConfig, 1000)
         taskQueue.put(t)
 
 
