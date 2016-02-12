@@ -132,48 +132,92 @@ class ArithmeticGenome(GenomeBase):
     def getOperatorFunction(self, symbol):
         return self.symbols[symbol][1]
 
-    def createIndividual(self, params):
-        return [random.choice(self.allSymbols) for x in range(params['length'])]
+    # Methods that create new dnaStrings must all follow the same interface:
+
+    # parameters:
+    # : parents - an array of two parents
+    # params - a set of configuration parameters for this genome
+    # : threshold - a float 0-1 that dictates how much change or randomness should be introduced
+
+    # return value, tuple of:
+    # : new dna
+    # : array of parents used
+
+
+    def createIndividual(self, params, parents, threshold):
+        newDna = [random.choice(self.allSymbols) for x in range(params['length'])]
+        return newDna, []
 
      # threshold likelihood of each character being swapped for random one
-    def mutateRandomMutation(self, dna, threshold):
-        return [dna[x] if random.random() > threshold else random.choice(self.allSymbols) for x in range(len(dna))]
+    def mutateRandomGeneMutation(self, params, parents, threshold):
+        dna = parents[0].dna
+        newDna = [dna[x] if random.random() > threshold else random.choice(self.allSymbols) for x in range(len(dna))]
+        return newDna, parents[0:1]
 
     # return new dna same length as partner 1, with each character randomly selected from 1 or 2 weighted by threshold
-    def mutateBreedWithPartnerRandomSymbol(self, partner1Dna, partner2Dna, threshold):
-        return [partner1Dna[x] if random.random() > threshold else partner2Dna[x] for x in range(len(partner1Dna))]
+    def mutateRandomCopyFromPartner(self, params, parents, threshold):
+        newDna = [parents[0].dna[x] if random.random() > threshold else parents[1].dna[x] for x in range(len(parents[0].dna))]
+        return newDna, parents
 
     # threshold is max percent of characters that can be swapped
-    def mutateBreedWithPartnerCopyRandomStripeToSamePlace(self, partner1Dna, partner2Dna, threshold):
+    def mutateStripeToSamePlace(self, params, parents, threshold):
 
-        lengthToSwap = int(len(partner1Dna) * threshold * random.random())
-        startPoint = random.randrange(0,len(partner1Dna))
+        lengthToSwap = int(len(parents[0].dna) * threshold * random.random())
+        startPoint = random.randrange(0,len(parents[0].dna))
 
         # print "{} {}".format(startPoint, lengthToSwap)
 
-        return [partner2Dna[x] if x in range(startPoint, startPoint + lengthToSwap) else partner1Dna[x] for x in range(len(partner1Dna))]
+        newDna = [parents[1].dna[x] if x in range(startPoint, startPoint + lengthToSwap) else parents[0].dna[x] for x in range(len(parents[0].dna))]
+        return newDna, parents
 
     # takes a random length piece of partner2 and moves it to a random place on partner 1
-    def mutateBreedWithPartnerMoveStripeToRandomPlace(self, partner1Dna, partner2Dna, threshold):
+    def mutateStripeToRandomPlace(self, params, parents, threshold):
 
-        lengthToSwap = int(len(partner2Dna) * threshold * random.random())
-        startPointSource = random.randrange(0,len(partner2Dna))
+        lengthToSwap = int(len(parents[1].dna) * threshold * random.random())
+        startPointSource = random.randrange(0,len(parents[1].dna))
 
-        startPointDest = random.randrange(0, len(partner1Dna))
+        startPointDest = random.randrange(0, len(parents[0].dna))
 
         # length might overrun new dna
-        if lengthToSwap + startPointDest > len(partner1Dna):
-            lengthToSwap = len(partner1Dna) - startPointDest
+        if lengthToSwap + startPointDest > len(parents[0].dna):
+            lengthToSwap = len(parents[0].dna) - startPointDest
 
-        # length and start point to read form are random, so they could read off end of source
-        if lengthToSwap + startPointSource > len(partner2Dna):
-            lengthToSwap = len(partner2Dna) - startPointSource
+        # length and start point to read form are random, so they could read off end of source, and source could be shorter
+        if lengthToSwap + startPointSource > len(parents[1].dna):
+            lengthToSwap = len(parents[1].dna) - startPointSource
 
         # print "length {} source {} dest {}".format(lengthToSwap, startPointSource, startPointDest)
 
-        newDna = partner1Dna[:]
+        newDna = parents[0].dna[:]
 
         for x in range(0, lengthToSwap):
-            newDna[startPointDest+x] = partner2Dna[startPointSource + x]
+            newDna[startPointDest+x] = parents[1].dna[startPointSource + x]
 
-        return newDna
+        return newDna, parents
+
+    def newIndividualByRandomMutation(self, mutationWeights, mutationProbabilities, params, parents):
+
+        mutationMethods = {"R" : self.mutateRandomGeneMutation,
+                           "S" : self.mutateRandomCopyFromPartner,
+                           "T" : self.mutateStripeToSamePlace,
+                           "M" : self.mutateStripeToRandomPlace,
+                           "N" : self.createIndividual}
+
+        methodId = self.weightedChoice(mutationWeights)
+
+        newDna, parents = mutationMethods[methodId](params, parents, mutationProbabilities[methodId])
+
+        return newDna, parents, methodId
+
+
+    def weightedChoice(self, choices):
+
+        total = sum(choices.values())
+        selectionPoint = random.uniform(0,total)
+        pointer = 0
+        for key, value in choices.iteritems():
+            pointer += value
+            if pointer >= selectionPoint:
+                return key
+        assert False, "Should not reach here"
+

@@ -1,6 +1,7 @@
 
 from g1.arithmeticgenome import ArithmeticGenome
-from g1.population import Individual, Population, PopulationAndSelectionConfig
+from g1.population import Population, PopulationAndSelectionConfig
+from g1.individual import Individual
 
 import random
 import logging
