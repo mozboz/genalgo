@@ -1,34 +1,34 @@
-from g1.arithmeticgenome import ArithmeticGenome, reader
+from g1.arithmeticgenome import ArithmeticGenome, Runner
 import random
 
 class PopulationAndSelectionConfig(object):
-    def __init__(self, populationSize, dnaLength, startingModifier, numberToCheckForStagnation, stagnationModifierMultiplier,
+    def __init__(self, populationSize, dnaLength, startingModifier, percentToCheckForStagnation, stagnationModifierMultiplier,
                  cullStartPercentage, cullEndPercentage, fittestSelectionStartPercentage, fittestSelectionEndPercentage,
                  mutateRandomSelectionWeight, mutateRandomWithPartnerSelectionWeight, mutateRandomStripeWithPartnerSelectionWeight,
                  mutateMoveStripeToRandomPlaceWithPartnerSelectionWeight, stagnationMargin, thresholdModifierScaler,
                  mutateRandomProbability, mutateRandomWithPartnerProbability, mutateRandomStripeWithPartnerProbability,
                  mutateMoveStripeToRandomPlaceWithPartnerProbability, newRandomWeight):
 
-        self.populationSize = populationSize
-        self.dnaLength = dnaLength
-        self.startingModifier = startingModifier # 0.0001
-        self.numberToCheckForStagnation = numberToCheckForStagnation # 20
-        self.stagnationModifierMultiplier = stagnationModifierMultiplier # 2
-        self.cullStartPercentage = cullStartPercentage # 16%
-        self.cullEndPercentage = cullEndPercentage # 32%
-        self.fittestSelectionStartPercentage = fittestSelectionStartPercentage # 0%
-        self.fittestSelectionEndPercentage = fittestSelectionEndPercentage # 33%
+        self.populationSize = populationSize # integer min/max, positive
+        self.dnaLength = dnaLength # integer min/max, positive
+        self.startingModifier = startingModifier # 0.0001  - float positive 0-1
+        self.percentToCheckForStagnation = percentToCheckForStagnation # 33% - float 0-1
+        self.stagnationModifierMultiplier = stagnationModifierMultiplier # 2 - float small (0-100?)
+        self.cullStartPercentage = cullStartPercentage # 16% float 0-1
+        self.cullEndPercentage = cullEndPercentage # 32% float 0-1
+        self.fittestSelectionStartPercentage = fittestSelectionStartPercentage # 0% float 0-1
+        self.fittestSelectionEndPercentage = fittestSelectionEndPercentage # 33% float 0-1
         # The weights that a given mutation method will be chosen
-        self.mutateRandomSelectionWeight = mutateRandomSelectionWeight # 1
-        self.mutateRandomWithPartnerSelectionWeight = mutateRandomWithPartnerSelectionWeight # 1
-        self.mutateRandomStripeWithPartnerSelectionWeight = mutateRandomStripeWithPartnerSelectionWeight # 1
-        self.mutateMoveStripeToRandomPlaceWithPartnerSelectionWeight = mutateMoveStripeToRandomPlaceWithPartnerSelectionWeight # 1
-        self.newRandomWeight = newRandomWeight # 1
+        self.mutateRandomSelectionWeight = mutateRandomSelectionWeight # 1 positive 0-1
+        self.mutateRandomWithPartnerSelectionWeight = mutateRandomWithPartnerSelectionWeight # 1 positive 0-1
+        self.mutateRandomStripeWithPartnerSelectionWeight = mutateRandomStripeWithPartnerSelectionWeight # 1 positive 0-1
+        self.mutateMoveStripeToRandomPlaceWithPartnerSelectionWeight = mutateMoveStripeToRandomPlaceWithPartnerSelectionWeight # 1 positive 0-1
+        self.newRandomWeight = newRandomWeight # 1 positive 0-1
         # The base probability of mutation in each method
-        self.mutateRandomProbability = mutateRandomProbability # 0.25
-        self.mutateRandomWithPartnerProbability = mutateRandomWithPartnerProbability # 0.25
-        self.mutateRandomStripeWithPartnerProbability = mutateRandomStripeWithPartnerProbability # 0.4
-        self.mutateMoveStripeToRandomPlaceWithPartnerProbability = mutateMoveStripeToRandomPlaceWithPartnerProbability # 0.5
+        self.mutateRandomProbability = mutateRandomProbability # 0.25 float 0-1
+        self.mutateRandomWithPartnerProbability = mutateRandomWithPartnerProbability # 0.25 float 0-1
+        self.mutateRandomStripeWithPartnerProbability = mutateRandomStripeWithPartnerProbability # 0.4 float 0-1
+        self.mutateMoveStripeToRandomPlaceWithPartnerProbability = mutateMoveStripeToRandomPlaceWithPartnerProbability # 0.5 float 0-1
         
         self.stagnationMargin = stagnationMargin # 0
         self.thresholdModifierScaler = thresholdModifierScaler # 1
@@ -66,7 +66,7 @@ class Population(object):
                 print self.dump(10)
 
             if self.finished():
-                return True
+                return False
 
             self.newPopulation()
 
@@ -78,7 +78,7 @@ class Population(object):
 
     def evaluate(self):
 
-        r = reader(self.genomeType)
+        r = Runner(self.genomeType)
 
         for x in [x for x in self.population if x.result is None]:
             x.result = r.run(x.dna)
@@ -99,9 +99,10 @@ class Population(object):
         # 2) If the thresholdModifier keeps getting increased and the population is still stagnated, then kill off
         #    some/all of the population in the hope that that will introduce some new methodology/randomness
 
-        avg_now = self.avgFitness(self.populationAndSelectionConfig.numberToCheckForStagnation)
+        numberToCheckForStagnation = int(len(self.population) * self.populationAndSelectionConfig.percentToCheckForStagnation)
+        avg_now = self.avgFitness(numberToCheckForStagnation)
 
-        self.log.debug("avg now {}, avg before {}, num to check {}, allowed difference {}".format(avg_now, self.avg_previous, self.populationAndSelectionConfig.numberToCheckForStagnation, self.populationAndSelectionConfig.stagnationMargin))
+        self.log.debug("avg now {}, avg before {}, num to check {}, allowed difference {}".format(avg_now, self.avg_previous, numberToCheckForStagnation, self.populationAndSelectionConfig.stagnationMargin))
 
         if abs(avg_now - self.avg_previous) <= self.populationAndSelectionConfig.stagnationMargin:
             before = self.thresholdModifier
@@ -239,6 +240,11 @@ class Population(object):
 class Individual(object):
 
     def __init__(self, log, type, generation, identifier, length = None, dnaString = None, parentId = None, method = None):
+
+        # these specific to the type, need to be refactored out:
+        # length = None, dnaString = None
+
+        # dnaString should be replaced with 'value' allowing new value to be passed in
         self.type = type
 
         assert length is not None or dnaString is not None

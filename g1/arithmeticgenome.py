@@ -1,6 +1,6 @@
 
 
-class reader(object):
+class Runner(object):
 
     # this language is wrong, genome is the class, dna is the string
     def __init__(self, genomeType):

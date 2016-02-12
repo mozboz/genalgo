@@ -9,6 +9,15 @@ import datetime, time
 import Queue
 import threading
 
+##### 1) Map the concept space of possible developments !!! Expansion in abilities vs speed, multi server deployments?
+
+##### Target interesting behaviours - synergistic relationships where both pop entities benefit?
+
+##### 2) Ability to evolve 'masks' that control variability of the chromosome, such that the mask learns which parts of
+##### the chromosome benefit from slower or more rapid change.as
+
+
+
 FORMAT = '%(asctime)-15s %(message)s'
 logging.basicConfig(format=FORMAT)
 
@@ -31,6 +40,7 @@ class PrintThread(threading.Thread):
         self.queue = printQueue
         self.f = open(filename, 'a')
         print "Data log started: " + filename
+        self.f.write("{}\t{}\t{}\t{}\t{}\t{}\t{}\n".format("Completed","Time","Generation","Min Fitness","Pop Size", "DNA Length", "Best DNA"))
 
     def run(self):
         while True:
@@ -111,12 +121,12 @@ for k in range(0,threads):
 problem = lambda x: 0.333
 populationSize=60
 
-populationConfig = PopulationAndSelectionConfig(60, 20, 0.0001, 20, 2, 0.16, 0.32, 0.33, 1, 1, 1, 1, 1, 0, 1, 0.25, 0.25, 0.4, 0.5, 1)
+populationConfig = PopulationAndSelectionConfig(60, 20, 0.0001, 0.33, 2, 0.16, 0.32, 0.33, 1, 1, 1, 1, 1, 0, 1, 0.25, 0.25, 0.4, 0.5, 1)
 
 
 for dnaLength in range(10,51,5):
     for k in range(0,100):
-        populationConfig = PopulationAndSelectionConfig(populationSize,dnaLength,0.0001, 20, 2, 0.16, 0.32, 0, 0.33, 1, 1, 1, 1, 0, 1, 0.25, 0.25, 0.4, 0.5, 1)
+        populationConfig = PopulationAndSelectionConfig(populationSize,dnaLength,0.0001, 0.33, 2, 0.16, 0.32, 0, 0.33, 1, 1, 1, 1, 0, 1, 0.25, 0.25, 0.4, 0.5, 1)
         t = Task(problem, ArithmeticGenome, populationConfig, 1000)
         taskQueue.put(t)
 
