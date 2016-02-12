@@ -5,22 +5,28 @@ import random
 class Runner(object):
 
     # this language is wrong, genome is the class, dna is the string
-    def __init__(self, genomeType):
-        self.genome = genomeType()
+    def __init__(self):
+        self.genome = ArithmeticGenome()
 
     # steps through dna from start to end, returns final information left in this cell
-    def run(self, dna):
-        self.dna = dna
-        self.position = 0
+    def run(self, dna=None, individual=None, startValue = None):
+        if individual is not None:
+            dna = individual.dna
+
         self.operator = self.genome.getOperatorFunction('O')
         self.operand = None
-        self.information = 0.0
+
+        if startValue is None:
+            self.information = 0.0
+        else:
+            self.information = startValue
+
         self.numberBuilderString = ""
         self.numberHasDecimalPlace = False
         self.isNegativeNumber = False
         self.doing = self.genome.OPERATOR
 
-        for symbol in self.dna:
+        for symbol in dna:
             self.processSymbol(symbol)
 
         # self.processSymbol(ArithmeticGenome.END_MARKER)

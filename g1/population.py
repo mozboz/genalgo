@@ -11,6 +11,10 @@ class PopulationAndSelectionConfig(object):
                  mutateRandomGeneMutationProbability, mutateRandomCopyFromPartnerProbability, mutateStripeToSamePlaceProbability,
                  mutateStripeToRandomPlaceProbability, newRandomWeight):
 
+        # Working example:
+
+        # populationConfig = PopulationAndSelectionConfig(60, 0.0001, 0.33, 2, 0.16, 0.32, 0.33, 1, 1, 1, 1, 1, 0, 1, 0.25, 0.25, 0.4, 0.5, 1)
+
         self.populationSize = populationSize # integer min/max, positive
         self.startingModifier = startingModifier # 0.0001  - float positive 0-1
         self.percentToCheckForStagnation = percentToCheckForStagnation # 33% - float 0-1
@@ -45,13 +49,16 @@ class PopulationAndSelectionConfig(object):
 
 class Population(object):
 
-    def __init__(self, log, genomeType, genomeParams, fitnessFunction, populationAndSelectionConfig):
+    def __init__(self, log, genomeType, genomeParams, fitnessFunction, populationAndSelectionConfig, population=None):
         self.populationAndSelectionConfig = populationAndSelectionConfig
         self.generation = 0
         self.genomeType = genomeType
         self.genomeParams = genomeParams
         self.populationSize = populationAndSelectionConfig.populationSize
-        self.population = [Individual(log, genomeType, self.generation, x, params=self.genomeParams) for x in range(1,self.populationSize)]
+        if population is None:
+            self.population = [Individual(log, genomeType, self.generation, x, params=self.genomeParams) for x in range(1,self.populationSize)]
+        else:
+            self.population = population
         self.fitnessFunction = fitnessFunction
         self.avg_previous = 0
         self.thresholdModifier = populationAndSelectionConfig.startingModifier
@@ -59,10 +66,10 @@ class Population(object):
 
         self.log = log
 
-    def iterate(self, iterations = 1, printIterations = True):
+    def iterateNoInput(self, iterations = 1, printIterations = True):
 
         for x in range(0,iterations):
-            self.evaluate()
+            self.evaluateNoInput()
 
             if printIterations:
                 print self.dump(10)
@@ -77,15 +84,52 @@ class Population(object):
 
         return True
 
-    def evaluate(self):
+    def evaluateNoInput(self):
 
-        r = Runner(self.genomeType)
+        r = Runner()
 
         for x in [x for x in self.population if x.result is None]:
             x.result = r.run(x.dna)
             x.fitness = self.fitness(x.result)
 
         self.population.sort()
+
+
+    def iterateTestSet(self, testSet, iterations = 1, printIterations = True):
+
+        for x in range(0,iterations):
+            self.evaluateTestSet(testSet)
+
+            if printIterations:
+                print self.dump(10)
+
+            if self.finished():
+                return False
+
+            self.newPopulation()
+
+            # if x % 10 == 0:
+            #     raw_input("Press Enter to continue...")
+
+        return True
+
+
+    def evaluateTestSet(self, testSet):
+
+        r = Runner(self.genomeType)
+
+        for i in self.population:
+            fitness = 0
+            for testValue in testSet:
+                i.result = r.run(individual=i, startValue=testValue)
+                fitness += self.fitness(i.result, testValue)
+
+            i.fitness = fitness
+
+        self.population.sort()
+
+
+
 
     def newPopulation(self):
 
@@ -185,8 +229,8 @@ class Population(object):
 
         self.generation += 1
 
-    def fitness(self, actual):
-        return abs(self.fitnessFunction(0) - actual)
+    def fitness(self, actual, input=0):
+        return abs(self.fitnessFunction(input) - actual)
 
     def dump(self, top = None):
         if top is None:
