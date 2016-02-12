@@ -2,21 +2,12 @@
 from g1.arithmeticgenome import ArithmeticGenome
 from g1.population import Population, PopulationAndSelectionConfig
 from g1.multithreading import PrintThread, Task, TaskRunner, createAndStartPrintAndTaskQueues, goGentleIntoThatGoodNight
+from g1.individual import Individual
 
 import random
 import logging
 # import cProfile, pstats
 import datetime, time
-
-##### 1) Map the concept space of possible developments !!! Expansion in abilities vs speed, multi server deployments?
-
-##### Target interesting behaviours - synergistic relationships where both pop entities benefit?
-
-##### 2) Ability to evolve 'masks' that control variability of the chromosome, such that the mask learns which parts of
-##### the chromosome benefit from slower or more rapid change.as
-
-##### 3) Include relative symbol frequency as evolveable parameters
-
 
 ### Setup
 random.seed()
@@ -32,13 +23,10 @@ dataLogFileName = 'data/Log0.333.' + st + ".tsv"
 # Creates queues which facilitate multi-threaded execution of populations simultaneously, and safe multi-threaded logging
 taskQueue, printQueue = createAndStartPrintAndTaskQueues(dataLogFileName, systemLog, threads=4)
 
-# def problemTimesTwo(i):
-#     return i * 2
-#
-# timesTwoTestSet = [2,16,99,1045,0.1]
+### Example to discover a constant value, looping through different dna lengths, with multi-threading
 
 def problem(dummmy):
-    return 0.333
+    return 3.141592
 
 populationSize=60
 iterations = 500

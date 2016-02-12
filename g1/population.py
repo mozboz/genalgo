@@ -116,7 +116,7 @@ class Population(object):
 
     def evaluateTestSet(self, testSet):
 
-        r = Runner(self.genomeType)
+        r = Runner()
 
         for i in self.population:
             fitness = 0

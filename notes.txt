@@ -1,0 +1,10 @@
+
+
+##### 1) Map the concept space of possible developments !!! Expansion in abilities vs speed, multi server deployments?
+
+##### Target interesting behaviours - synergistic relationships where both pop entities benefit?
+
+##### 2) Ability to evolve 'masks' that control variability of the chromosome, such that the mask learns which parts of
+##### the chromosome benefit from slower or more rapid change.as
+
+##### 3) Include relative symbol frequency as evolveable parameters

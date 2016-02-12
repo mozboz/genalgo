@@ -45,7 +45,7 @@ class TaskRunner(threading.Thread):
 
     def processTask(self, task):
 
-        print self.__repr__() + " took task"
+        self.systemLog.debug(self.__repr__() + " took task")
         p = Population(
             self.systemLog,
             genomeType=task.type,
