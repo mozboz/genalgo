@@ -1,4 +1,6 @@
 
+from genomebase import GenomeBase
+import random
 
 class Runner(object):
 
@@ -93,24 +95,8 @@ class Runner(object):
             self.information = 0
 
 
-class GenomeBase(object):
 
-    END_MARKER = 0
-
-    def __init__(self):
-        # List of tuples of the form (TYPE, VALUE)
-        self.symbols = {}
-
-    def registerSymbols(self, symbols):
-        self.symbols.update(symbols)
-
-    def isSymbolType(self, symbol, type):
-        return self.symbols[symbol][0] == type
-
-    def getType(self, symbol):
-        return self.symbols[symbol][0]
-
-
+# Includes random creation and mutation functions
 class ArithmeticGenome(GenomeBase):
 
     # Types of symbols
@@ -140,6 +126,54 @@ class ArithmeticGenome(GenomeBase):
             'O' : (self.OPERATOR, lambda x,y: y)
         })
 
+        self.allSymbols = self.symbols.keys()
+
 
     def getOperatorFunction(self, symbol):
         return self.symbols[symbol][1]
+
+    def createIndividual(self, params):
+        return [random.choice(self.allSymbols) for x in range(params['length'])]
+
+     # threshold likelihood of each character being swapped for random one
+    def mutateRandomMutation(self, dna, threshold):
+        return [dna[x] if random.random() > threshold else random.choice(self.allSymbols) for x in range(len(dna))]
+
+    # return new dna same length as partner 1, with each character randomly selected from 1 or 2 weighted by threshold
+    def mutateBreedWithPartnerRandomSymbol(self, partner1Dna, partner2Dna, threshold):
+        return [partner1Dna[x] if random.random() > threshold else partner2Dna[x] for x in range(len(partner1Dna))]
+
+    # threshold is max percent of characters that can be swapped
+    def mutateBreedWithPartnerCopyRandomStripeToSamePlace(self, partner1Dna, partner2Dna, threshold):
+
+        lengthToSwap = int(len(partner1Dna) * threshold * random.random())
+        startPoint = random.randrange(0,len(partner1Dna))
+
+        # print "{} {}".format(startPoint, lengthToSwap)
+
+        return [partner2Dna[x] if x in range(startPoint, startPoint + lengthToSwap) else partner1Dna[x] for x in range(len(partner1Dna))]
+
+    # takes a random length piece of partner2 and moves it to a random place on partner 1
+    def mutateBreedWithPartnerMoveStripeToRandomPlace(self, partner1Dna, partner2Dna, threshold):
+
+        lengthToSwap = int(len(partner2Dna) * threshold * random.random())
+        startPointSource = random.randrange(0,len(partner2Dna))
+
+        startPointDest = random.randrange(0, len(partner1Dna))
+
+        # length might overrun new dna
+        if lengthToSwap + startPointDest > len(partner1Dna):
+            lengthToSwap = len(partner1Dna) - startPointDest
+
+        # length and start point to read form are random, so they could read off end of source
+        if lengthToSwap + startPointSource > len(partner2Dna):
+            lengthToSwap = len(partner2Dna) - startPointSource
+
+        # print "length {} source {} dest {}".format(lengthToSwap, startPointSource, startPointDest)
+
+        newDna = partner1Dna[:]
+
+        for x in range(0, lengthToSwap):
+            newDna[startPointDest+x] = partner2Dna[startPointSource + x]
+
+        return newDna

@@ -51,9 +51,10 @@ class PrintThread(threading.Thread):
 
 
 class Task(object):
-    def __init__(self, problem, type, populationConfig, iterations):
+    def __init__(self, problem, type, genomeConfig, populationConfig, iterations):
         self.problem = problem
         self.type = type
+        self.genomeConfig = genomeConfig
         self.populationConfig = populationConfig
         self.iterations = iterations
 
@@ -78,6 +79,7 @@ class TaskRunner(threading.Thread):
         p = Population(
             self.systemLog,
             genomeType=task.type,
+            genomeParams=task.genomeConfig,
             fitnessFunction=task.problem,
             populationAndSelectionConfig=task.populationConfig
         )
@@ -88,7 +90,7 @@ class TaskRunner(threading.Thread):
 
         logLine = "{}\t{}\t{}\t{}\t{}\t{}\t{}".\
             format(p.finished(), timeRan, p.generation, p.population[0].fitness, task.populationConfig.populationSize,
-                   task.populationConfig.dnaLength, "".join(p.population[0].dna))
+                   task.genomeConfig['length'], "".join(p.population[0].dna))
 
         printQueue.put(logLine)
 
@@ -121,13 +123,14 @@ for k in range(0,threads):
 problem = lambda x: 0.333
 populationSize=60
 
-populationConfig = PopulationAndSelectionConfig(60, 20, 0.0001, 0.33, 2, 0.16, 0.32, 0.33, 1, 1, 1, 1, 1, 0, 1, 0.25, 0.25, 0.4, 0.5, 1)
+populationConfig = PopulationAndSelectionConfig(60, 0.0001, 0.33, 2, 0.16, 0.32, 0.33, 1, 1, 1, 1, 1, 0, 1, 0.25, 0.25, 0.4, 0.5, 1)
 
 
 for dnaLength in range(10,51,5):
     for k in range(0,100):
-        populationConfig = PopulationAndSelectionConfig(populationSize,dnaLength,0.0001, 0.33, 2, 0.16, 0.32, 0, 0.33, 1, 1, 1, 1, 0, 1, 0.25, 0.25, 0.4, 0.5, 1)
-        t = Task(problem, ArithmeticGenome, populationConfig, 1000)
+        populationConfig = PopulationAndSelectionConfig(populationSize,0.0001, 0.33, 2, 0.16, 0.32, 0, 0.33, 1, 1, 1, 1, 0, 1, 0.25, 0.25, 0.4, 0.5, 1)
+        genomeConfig = {"length" : dnaLength}
+        t = Task(problem, ArithmeticGenome, genomeConfig, populationConfig, 1000)
         taskQueue.put(t)
 
 

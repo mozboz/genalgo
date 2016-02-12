@@ -2,15 +2,14 @@ from g1.arithmeticgenome import ArithmeticGenome, Runner
 import random
 
 class PopulationAndSelectionConfig(object):
-    def __init__(self, populationSize, dnaLength, startingModifier, percentToCheckForStagnation, stagnationModifierMultiplier,
+    def __init__(self, populationSize, startingModifier, percentToCheckForStagnation, stagnationModifierMultiplier,
                  cullStartPercentage, cullEndPercentage, fittestSelectionStartPercentage, fittestSelectionEndPercentage,
                  mutateRandomSelectionWeight, mutateRandomWithPartnerSelectionWeight, mutateRandomStripeWithPartnerSelectionWeight,
                  mutateMoveStripeToRandomPlaceWithPartnerSelectionWeight, stagnationMargin, thresholdModifierScaler,
-                 mutateRandomProbability, mutateRandomWithPartnerProbability, mutateRandomStripeWithPartnerProbability,
+                 mutateRandomProbability, mutateRandomWithPartnerProbability, mutateBreedWithPartnerCopyRandomStripeToSamePlace,
                  mutateMoveStripeToRandomPlaceWithPartnerProbability, newRandomWeight):
 
         self.populationSize = populationSize # integer min/max, positive
-        self.dnaLength = dnaLength # integer min/max, positive
         self.startingModifier = startingModifier # 0.0001  - float positive 0-1
         self.percentToCheckForStagnation = percentToCheckForStagnation # 33% - float 0-1
         self.stagnationModifierMultiplier = stagnationModifierMultiplier # 2 - float small (0-100?)
@@ -27,7 +26,7 @@ class PopulationAndSelectionConfig(object):
         # The base probability of mutation in each method
         self.mutateRandomProbability = mutateRandomProbability # 0.25 float 0-1
         self.mutateRandomWithPartnerProbability = mutateRandomWithPartnerProbability # 0.25 float 0-1
-        self.mutateRandomStripeWithPartnerProbability = mutateRandomStripeWithPartnerProbability # 0.4 float 0-1
+        self.mutateBreedWithPartnerCopyRandomStripeToSamePlace = mutateBreedWithPartnerCopyRandomStripeToSamePlace # 0.4 float 0-1
         self.mutateMoveStripeToRandomPlaceWithPartnerProbability = mutateMoveStripeToRandomPlaceWithPartnerProbability # 0.5 float 0-1
         
         self.stagnationMargin = stagnationMargin # 0
@@ -40,17 +39,14 @@ class PopulationAndSelectionConfig(object):
 
 class Population(object):
 
-    def __init__(self, log, genomeType, fitnessFunction, populationAndSelectionConfig):
+    def __init__(self, log, genomeType, genomeParams, fitnessFunction, populationAndSelectionConfig):
         self.populationAndSelectionConfig = populationAndSelectionConfig
         self.generation = 0
         self.genomeType = genomeType
+        self.genomeParams = genomeParams
         self.populationSize = populationAndSelectionConfig.populationSize
-        self.population = \
-            [Individual(log, genomeType, self.generation, x, length=populationAndSelectionConfig.dnaLength)
-             for x in range(1,self.populationSize)
-            ]
+        self.population = [Individual(log, genomeType, self.generation, x, params=self.genomeParams) for x in range(1,self.populationSize)]
         self.fitnessFunction = fitnessFunction
-        self.dnaLength = populationAndSelectionConfig.dnaLength
         self.avg_previous = 0
         self.thresholdModifier = populationAndSelectionConfig.startingModifier
         self.cullCount = 0
@@ -74,7 +70,6 @@ class Population(object):
             #     raw_input("Press Enter to continue...")
 
         return True
-
 
     def evaluate(self):
 
@@ -142,16 +137,18 @@ class Population(object):
 
         # Add a new completely random individual
         def newRandom(id):
-            new = Individual(self.log, self.genomeType, self.generation, id, length = self.dnaLength, method="N")
+            new = Individual(self.log, self.genomeType, self.generation, id, params = self.genomeParams, method="N")
             self.population.append(new)
             self.log.debug("New random added ({})".format(id))
 
         # Define mutation functions
 
+        genome = self.genomeType()
+
         def mutateRandom(id):
             mates = random.sample(self.population, 1)
-            new = Individual(self.log, self.genomeType, self.generation, id, dnaString=mates[0].dna, parentId=mates[0].identifier, method="R")
-            new.mutateRandomMutation(self.populationAndSelectionConfig.mutateRandomProbability + self.thresholdModifier)
+            newDna = genome.mutateRandomMutation(mates[0].dna, self.populationAndSelectionConfig.mutateRandomProbability + self.thresholdModifier)
+            new = Individual(self.log, self.genomeType, self.generation, id, dnaString=newDna, parentId=mates[0].identifier, method="R")
             self.population.append(new)
             self.log.debug("Mutation R with prob {} ({})".format(self.populationAndSelectionConfig.mutateRandomProbability + self.thresholdModifier, id))
 
@@ -159,22 +156,22 @@ class Population(object):
 
         def mutateRandomWithPartner(id):
             mates = random.sample(self.population, 2)
-            new = Individual(self.log, self.genomeType, self.generation, id, dnaString=mates[0].dna, parentId=mates[0].identifier, method="S")
-            new.mutateBreedWithPartnerRandomSymbol(mates[1].dna, self.populationAndSelectionConfig.mutateRandomWithPartnerProbability + thresholdModification)
+            newDna = genome.mutateBreedWithPartnerRandomSymbol(mates[0].dna, mates[1].dna, self.populationAndSelectionConfig.mutateRandomWithPartnerProbability + thresholdModification)
+            new = Individual(self.log, self.genomeType, self.generation, id, dnaString=newDna, parentId=mates[0].identifier, method="S")
             self.population.append(new)
             self.log.debug("Mutation S with prob {} ({})".format(self.populationAndSelectionConfig.mutateRandomWithPartnerProbability + self.thresholdModifier, id))
 
         def mutateRandomStripeWithPartner(id):
             mates = random.sample(self.population, 2)
-            new = Individual(self.log, self.genomeType, self.generation, id, dnaString=mates[0].dna, parentId=mates[0].identifier, method="T")
-            new.mutateBreedWithPartnerCopyRandomStripeToSamePlace(mates[1].dna, self.populationAndSelectionConfig.mutateRandomStripeWithPartnerProbability + thresholdModification)
+            newDna = genome.mutateBreedWithPartnerCopyRandomStripeToSamePlace(mates[0].dna, mates[1].dna, self.populationAndSelectionConfig.mutateBreedWithPartnerCopyRandomStripeToSamePlace + thresholdModification)
+            new = Individual(self.log, self.genomeType, self.generation, id, dnaString=newDna, parentId=mates[0].identifier, method="T")
             self.population.append(new)
-            self.log.debug("Mutation T with prob {} ({})".format(self.populationAndSelectionConfig.mutateRandomStripeWithPartnerProbability + self.thresholdModifier, id))
+            self.log.debug("Mutation T with prob {} ({})".format(self.populationAndSelectionConfig.mutateBreedWithPartnerCopyRandomStripeToSamePlace + self.thresholdModifier, id))
 
         def mutateMoveStripeToRandomPlaceWithPartner(id):
             mates = random.sample(self.population, 2)
-            new = Individual(self.log, self.genomeType, self.generation, id, dnaString=mates[0].dna, parentId=mates[0].identifier, method="M")
-            new.mutateBreedWithPartnerMoveStripeToRandomPlace(mates[1].dna, self.populationAndSelectionConfig.mutateMoveStripeToRandomPlaceWithPartnerProbability + thresholdModification)
+            newDna = genome.mutateBreedWithPartnerMoveStripeToRandomPlace(mates[0].dna, mates[1].dna, self.populationAndSelectionConfig.mutateMoveStripeToRandomPlaceWithPartnerProbability + thresholdModification)
+            new = Individual(self.log, self.genomeType, self.generation, id, dnaString=newDna, parentId=mates[0].identifier, method="M")
             self.population.append(new)
             self.log.debug("Mutation M with prob {} ({})".format(self.populationAndSelectionConfig.mutateMoveStripeToRandomPlaceWithPartnerProbability + self.thresholdModifier, id))
 
@@ -202,8 +199,6 @@ class Population(object):
     def dump(self, top = None):
         if top is None:
             top = len(self.population)
-
-        finish = False
 
         msg = ""
         for x in self.population[0:top]:
@@ -239,28 +234,22 @@ class Population(object):
 
 class Individual(object):
 
-    def __init__(self, log, type, generation, identifier, length = None, dnaString = None, parentId = None, method = None):
+    def __init__(self, log, type, generation, identifier, params = None, dnaString = None, parentId = None, method = None):
 
         # these specific to the type, need to be refactored out:
         # length = None, dnaString = None
 
         # dnaString should be replaced with 'value' allowing new value to be passed in
-        self.type = type
+        self.genome = type()
 
-        assert length is not None or dnaString is not None
+        #either params are provided to setup a new individual, or dnaString is provided
+        assert (params is None) != (dnaString is None)
 
-        if length is not None and dnaString is not None:
+        if params is None and dnaString is not None:
             self.dna = dnaString[:]
-            assert length == len(dnaString)
-            self.length = length
 
-        if length is None and dnaString is not None:
-            self.dna = dnaString[:]
-            self.length = len(self.dna)
-
-        if length is not None and dnaString is None:
-            self.length = length
-            self.initRandom()
+        if params is not None and dnaString is None:
+            self.dna = self.genome.createIndividual(params)
 
         self.fitness = None
         self.result = None
@@ -273,54 +262,5 @@ class Individual(object):
         if parentId is not None:
             self.identifier += "({})".format(parentId)
 
-
     def __lt__(self, other):
          return self.fitness < other.fitness
-
-    def initRandom(self):
-        genome = self.type()
-        allSymbols = genome.symbols.keys()
-        self.dna = [random.choice(allSymbols) for x in range(self.length)]
-
-    # threshold = likelihood of each character being swapped for partner's
-    def mutateBreedWithPartnerRandomSymbol(self, partnerDna, threshold):
-        assert self.length == len(partnerDna)
-
-        self.dna = [self.dna[x] if random.random() > threshold else partnerDna[x] for x in range(self.length)]
-
-    # threshold likelihood of each character being swapped for random one
-    def mutateRandomMutation(self, threshold):
-        genome = self.type()
-        allSymbols = genome.symbols.keys()
-
-        self.dna = [self.dna[x] if random.random() > threshold else random.choice(allSymbols) for x in range(self.length)]
-
-    # threshold is max percent of characters that can be swapped
-    def mutateBreedWithPartnerCopyRandomStripeToSamePlace(self, partnerDna, threshold):
-
-        lengthToSwap = int(self.length * threshold * random.random())
-        startPoint = random.randrange(0,self.length)
-
-        # print "{} {}".format(startPoint, lengthToSwap)
-
-        self.dna = [partnerDna[x] if x in range(startPoint, startPoint + lengthToSwap) else self.dna[x] for x in range(self.length)]
-
-    def mutateBreedWithPartnerMoveStripeToRandomPlace(self, partnerDna, threshold):
-
-        lengthToSwap = int(self.length * threshold * random.random())
-        startPointSource = random.randrange(0,self.length)
-
-        startPointDest = random.randrange(0, self.length)
-
-        if lengthToSwap + startPointDest > self.length:
-            lengthToSwap = self.length - startPointDest
-
-        if lengthToSwap + startPointSource > self.length:
-            lengthToSwap = self.length - startPointSource
-
-        # print "length {} source {} dest {}".format(lengthToSwap, startPointSource, startPointDest)
-
-        for x in range(0, lengthToSwap):
-            self.dna[startPointDest+x] = partnerDna[startPointSource + x]
-
-
