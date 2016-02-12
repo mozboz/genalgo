@@ -55,7 +55,7 @@ class TaskRunner(threading.Thread):
         )
 
         start = time.time()
-        p.iterateNoInput(task.iterations, printIterations=False)
+        p.iterateNoInput(task.iterations, printIterations=True)
         timeRan = time.time() - start
 
         logLine = "{}\t{}\t{}\t{}\t{}\t{}\t{}".\

@@ -27,7 +27,6 @@ def problemTimesTwo(i):
 
 timesTwoTestSet = [2,16,99,1045,0.1]
 
-
 populationSize=60
 iterations = 500
 

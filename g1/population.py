@@ -49,7 +49,17 @@ class PopulationAndSelectionConfig(object):
 
 class Population(object):
 
-    def __init__(self, log, genomeType, genomeParams, fitnessFunction, populationAndSelectionConfig, population=None):
+    def __init__(self, log, genomeType, genomeParams, fitnessFunction, populationAndSelectionConfig, population=None, testSet=None):
+
+        # Whether or not test data is provided is used as an indication whether to run each Individual in 'constant' or 'function'
+        # mode.
+        #
+        # No test data and 'constant' discovery implies there is no input, there is a single target value, the dna
+        # string has a constant output and therefore only ever needs to be run once
+        #
+        # Test data and 'function' discover implies there is input for every run of the Individual, there are more than one
+        # test data input points, and therefore the Individual must be run once for every input point
+
         self.populationAndSelectionConfig = populationAndSelectionConfig
         self.generation = 0
         self.genomeType = genomeType
@@ -63,8 +73,11 @@ class Population(object):
         self.avg_previous = 0
         self.thresholdModifier = populationAndSelectionConfig.startingModifier
         self.cullCount = 0
+        self.testSet = testSet
 
         self.log = log
+
+
 
     def iterateNoInput(self, iterations = 1, printIterations = True):
 
@@ -79,8 +92,8 @@ class Population(object):
 
             self.newPopulation()
 
-            # if x % 10 == 0:
-            #     raw_input("Press Enter to continue...")
+            if x % 10 == 0:
+                raw_input("Press Enter to continue...")
 
         return True
 
@@ -88,9 +101,9 @@ class Population(object):
 
         r = Runner()
 
-        for x in [x for x in self.population if x.result is None]:
-            x.result = r.run(x.dna)
-            x.fitness = self.fitness(x.result)
+        for i in [x for x in self.population if x.fitness is None]:
+            i.result = r.run(i.dna)
+            i.fitness = self.fitness(i.result)
 
         self.population.sort()
 
@@ -118,7 +131,7 @@ class Population(object):
 
         r = Runner()
 
-        for i in self.population:
+        for i in [x for x in self.population if x.fitness is None]:
             fitness = 0
             for testValue in testSet:
                 i.result = r.run(individual=i, startValue=testValue)
@@ -127,8 +140,6 @@ class Population(object):
             i.fitness = fitness
 
         self.population.sort()
-
-
 
 
     def newPopulation(self):
