@@ -51,7 +51,7 @@ class PopulationAndSelectionConfig(object):
 
 class Population(object):
 
-    def __init__(self, log, genomeType, genomeParams, fitnessFunction, populationAndSelectionConfig, population=None, testSet=None):
+    def __init__(self, log, genomeType, genomeParams, problem, populationAndSelectionConfig, population=None):
 
         # Whether or not test data is provided is used as an indication whether to run each Individual in 'constant' or 'function'
         # mode.
@@ -70,20 +70,19 @@ class Population(object):
             self.population = [Individual(log, genomeType, self.generation, x, params=self.genomeParams) for x in range(1,self.populationAndSelectionConfig.populationSize)]
         else:
             self.population = population
-        self.fitnessFunction = fitnessFunction
         self.avg_previous = 0
         self.thresholdModifier = populationAndSelectionConfig.startingModifier
         self.cullCount = 0
-        self.testSet = testSet
+        self.problem = problem
 
         self.log = log
 
 
     def iterate(self, iterations = 1, printIterations = False):
-        if self.testSet is None:
+        if self.problem.testSet is None:
             self.iterateNoInput(iterations, printIterations)
         else:
-            self.iterateTestSet(self.testSet, iterations, printIterations)
+            self.iterateTestSet(self.problem.testSet, iterations, printIterations)
 
 
     def iterateNoInput(self, iterations = 1, printIterations = False):
@@ -110,7 +109,7 @@ class Population(object):
 
         for i in [x for x in self.population if x.fitness is None]:
             i.result = r.run(i.dna)
-            i.fitness = self.fitness(i.result)
+            i.fitness = self.problem.fitness(i.result)
 
         self.population.sort()
 
@@ -140,11 +139,16 @@ class Population(object):
 
         for i in [x for x in self.population if x.fitness is None]:
             fitness = 0
-            for testValue in testSet:
-                i.result = r.run(individual=i, startValue=testValue)
-                fitness += self.fitness(i.result, testValue)
 
-            i.fitness = fitness
+            try:
+                for testValue in testSet:
+                    i.result = r.run(individual=i, startValue=testValue)
+                    fitness += self.problem.fitness(i.result, testValue)
+
+                i.fitness = fitness
+
+            except OverflowError:
+                i.fitness = 1.7976931348623157e+308
 
         self.population.sort()
 
@@ -264,8 +268,6 @@ class Population(object):
 
         self.log.debug("end of gen " + str(self.generation))
 
-    def fitness(self, actual, input=0):
-        return abs(self.fitnessFunction(input) - actual)
 
     def dump(self, top = None):
         if top is None:

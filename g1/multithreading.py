@@ -19,23 +19,10 @@ class PrintThread(threading.Thread):
             print logEntry
             self.queue.task_done()
 
-
-class ConstantDiscoveryTask(object):
-    def __init__(self, problem, type, genomeConfig, populationConfig, iterations, printIterations = False):
+class Task(object):
+    def __init__(self, problem, chromosomeType, genomeConfig, populationConfig, iterations, printIterations = False):
         self.problem = problem
-        self.type = type
-        self.genomeConfig = genomeConfig
-        self.populationConfig = populationConfig
-        self.iterations = iterations
-        self.testSet = None
-        self.printIterations = printIterations
-
-
-class FunctionDiscoveryTask(object):
-    def __init__(self, problem, testSet, type, genomeConfig, populationConfig, iterations, printIterations = False):
-        self.problem = problem
-        self.testSet = testSet
-        self.type = type
+        self.type = chromosomeType
         self.genomeConfig = genomeConfig
         self.populationConfig = populationConfig
         self.iterations = iterations
@@ -64,8 +51,7 @@ class TaskRunner(threading.Thread):
             self.systemLog,
             genomeType = task.type,
             genomeParams = task.genomeConfig,
-            fitnessFunction = task.problem,
-            testSet = task.testSet,
+            problem = task.problem,
             populationAndSelectionConfig = task.populationConfig
         )
 

@@ -1,11 +1,13 @@
 
 from g1.arithmeticgenome import ArithmeticGenome
 from g1.population import Population, PopulationAndSelectionConfig
-from g1.multithreading import PrintThread, FunctionDiscoveryTask, TaskRunner, createAndStartPrintAndTaskQueues, goGentleIntoThatGoodNight
+from g1.multithreading import PrintThread, Task, TaskRunner, createAndStartPrintAndTaskQueues, goGentleIntoThatGoodNight
 from g1.individual import Individual
+from g1.problemAndFitness import ProblemBase
 
 import random
 import logging
+import math
 # import cProfile, pstats
 import datetime, time
 
@@ -25,20 +27,26 @@ taskQueue, printQueue = createAndStartPrintAndTaskQueues(dataLogFileName, system
 
 ### Example to discover a constant value, looping through different dna lengths, with multi-threading
 
-def problemTimesTwo(i):
-    return i * i + i
+class myProblem(ProblemBase):
 
-timesTwoTestSet = [2,16,99,1045,0.1]
+    def problem(self, i):
+        return 1 if i > 9 else 0
+
+    type = ProblemBase.BOOLEAN
+
+    # timesTwoTestSet = [2,-16,99,-1045,0.1, -0.5, 10, -10, 7, -700, -1000]
+
+    testSet = [1,5,90,-10,225,-270,350,0.1,-0.1]
+
 
 populationSize=60
 iterations = 500
-
 dnaLength = 10
 
 for x in range(0,100):
     populationConfig = PopulationAndSelectionConfig(populationSize,0.0001, 0.33, 2, 0.16, 0.32, 0, 0.33, 1, 1, 1, 1, 0, 1, 0.25, 0.25, 0.4, 0.5, 1, 0)
     genomeConfig = {"length" : dnaLength}
-    t = FunctionDiscoveryTask(problemTimesTwo, timesTwoTestSet, ArithmeticGenome, genomeConfig, populationConfig, iterations, False)
+    t = Task(myProblem(), ArithmeticGenome, genomeConfig, populationConfig, iterations, False)
     taskQueue.put(t)
 
 

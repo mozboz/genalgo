@@ -60,7 +60,8 @@ class ArithmeticGenome(GenomeBase):
             '/' : (self.OPERATOR, lambda x,y: x / y) ,
             '>' : (self.INSTRUCTION, self.store('A')),
             '<' : (self.INSTRUCTION, self.retrieve('A')),
-            'O' : (self.OPERATOR, lambda x,y: y)
+            'O' : (self.OPERATOR, lambda x,y: y,),
+            'F' : (self.OPERATOR, lambda x,y: x if y > 0 else 0)
         })
 
         self.allSymbols = self.symbols.keys()
@@ -107,7 +108,7 @@ class ArithmeticGenome(GenomeBase):
     def runOperatorOnNumber(self):
         try:
             self.information = self.operator(self.information, self.operand)
-        except ZeroDivisionError:
+        except (ZeroDivisionError, OverflowError):
             self.information = 0
 
     def runInstruction(self, symbol):
@@ -259,6 +260,8 @@ class Runner(ArithmeticGenome):
             self.runInstruction(symbol)
 
         elif type == ArithmeticGenome.NUMBER:
+            if self.doing <> ArithmeticGenome.NUMBER:
+                self.operand = 0
 
             self.appendNumber(symbol)
             self.doing = ArithmeticGenome.NUMBER
