@@ -79,7 +79,14 @@ class Population(object):
         self.log = log
 
 
-    def iterateNoInput(self, iterations = 1, printIterations = True):
+    def iterate(self, iterations = 1, printIterations = False):
+        if self.testSet is None:
+            self.iterateNoInput(iterations, printIterations)
+        else:
+            self.iterateTestSet(self.testSet, iterations, printIterations)
+
+
+    def iterateNoInput(self, iterations = 1, printIterations = False):
 
         for x in range(0,iterations):
             self.evaluateNoInput()

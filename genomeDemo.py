@@ -17,16 +17,18 @@ age = 0
 
 dna = "2*N2.5"    # expected output fixed value -5.0
 
-i = Individual(systemLog, ArithmeticGenome, age, "bob", dnaString=dna)
-
-runner = Runner()
-
-print runner.run(individual=i)
+# i = Individual(systemLog, ArithmeticGenome, age, "bob", dnaString=dna)
+#
+# runner = Runner()
+#
+# print runner.run(individual=i)
 
 
 ## Test Process An Input
 
 dna = "*2+3"    # expected output is: input*2+3. So 2 -> 7, 10 -> 23
+dna = ">*<"     # expected output is squared (stores value to storage, retrieves storage to number, multiplies value by number
+# dna = "4+.>-85.>9"
 
 i = Individual(systemLog, ArithmeticGenome, age, "bob", dnaString=dna)
 
@@ -37,11 +39,11 @@ print runner.run(individual=i,startValue=10)
 
 
 
-## Arbitrarily Long Dna
+## Arbitrarily Long Dna is always executable
 
-i = Individual(systemLog, ArithmeticGenome, age, "bob", params={"length" : 100})
-print "".join(i.dna)
-
-runner = Runner()
-
-print runner.run(individual=i)
+# i = Individual(systemLog, ArithmeticGenome, age, "bob", params={"length" : 100})
+# print "".join(i.dna)
+#
+# runner = Runner()
+#
+# print runner.run(individual=i)

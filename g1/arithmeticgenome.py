@@ -2,114 +2,43 @@
 from genomebase import GenomeBase
 import random
 
-class Runner(object):
-
-    # this language is wrong, genome is the class, dna is the string
-    def __init__(self):
-        self.genome = ArithmeticGenome()
-
-    # steps through dna from start to end, returns final information left in this cell
-    def run(self, dna=None, individual=None, startValue = None):
-        if individual is not None:
-            dna = individual.dna
-
-        self.operator = self.genome.getOperatorFunction('O')
-        self.operand = None
-
-        if startValue is None:
-            self.information = 0.0
-        else:
-            self.information = startValue
-
-        self.numberBuilderString = ""
-        self.numberHasDecimalPlace = False
-        self.isNegativeNumber = False
-        self.doing = self.genome.OPERATOR
-
-        for symbol in dna:
-            self.processSymbol(symbol)
-
-        # self.processSymbol(ArithmeticGenome.END_MARKER)
-
-        # if ending on a number, process it
-        if self.doing == ArithmeticGenome.NUMBER:
-            self.finishNumber()
-            self.runOperatorOnNumber()
-
-        return self.information
-
-    def processSymbol(self, symbol):
-
-        type = self.genome.getType(symbol)
-
-        if type == ArithmeticGenome.NUMBER:
-
-            self.appendNumber(symbol)
-            self.doing = ArithmeticGenome.NUMBER
-
-        elif type == ArithmeticGenome.OPERATOR:
-
-            if self.doing == ArithmeticGenome.NUMBER:
-                self.finishNumber()
-                self.runOperatorOnNumber()
-                self.setOperator(symbol)
-                self.doing = ArithmeticGenome.OPERATOR
-
-            elif self.doing == ArithmeticGenome.OPERATOR:
-                self.setOperator(symbol)
-
-        else:
-            assert False, "Unknown Type"
-
-
-    def appendNumber(self, symbol):
-
-        # decimal place
-        if symbol == ".":
-            if not self.numberHasDecimalPlace:
-                self.numberBuilderString += symbol
-                self.numberHasDecimalPlace = True
-
-        # negative number
-        elif symbol == "N":
-            self.isNegativeNumber = not self.isNegativeNumber
-
-        else:
-            self.numberBuilderString += symbol
-
-    def finishNumber(self):
-        try:
-            v = float(self.numberBuilderString)
-            if self.isNegativeNumber:
-                v = -v
-            self.operand = v
-
-        except ValueError:
-            self.operand = 0
-
-        self.numberBuilderString = ""
-        self.numberHasDecimalPlace = False
-        self.isNegativeNumber = False
-
-    def setOperator(self, symbol):
-        self.operator = self.genome.getOperatorFunction(symbol)
-
-    def runOperatorOnNumber(self):
-        try:
-            self.information = self.operator(self.information, self.operand)
-        except ZeroDivisionError:
-            self.information = 0
-
-
-
 # Includes random creation and mutation functions
 class ArithmeticGenome(GenomeBase):
 
     # Types of symbols
     NUMBER = 1          # literal numbers, negative and decimal point symbols
     OPERATOR = 2        # callable functions to operate on one or two numbers
+    INSTRUCTION = 3     # instructions that should be immediately executed
+
+    def store(self, key):
+        def s():
+            self.storage[key] = self.information
+        return s
+
+    def retrieve(self, key):
+        def r():
+            if self.storage.has_key(key):
+                # if was in the middle of number, then it's lost
+                if self.doing == ArithmeticGenome.NUMBER:
+                    self.finishNumber()
+                self.operand = self.storage[key]
+                # put in number mode because there is a number ready
+                self.doing = ArithmeticGenome.NUMBER
+            # if the key is not set, do nothing
+        return r
 
     def __init__(self):
+        # iniitialisation settings are purposely unset/invalid
+        self.operator = None
+        self.operand = None
+        self.information = 0.0
+        self.numberBuilderString = ""
+        self.numberHasDecimalPlace = False
+        self.isNegativeNumber = False
+        self.doing = None
+
+
+        self.storage = {}
         super(ArithmeticGenome, self).__init__()
         self.registerSymbols( {
             '0' : (self.NUMBER, "0") ,
@@ -129,13 +58,63 @@ class ArithmeticGenome(GenomeBase):
             '*' : (self.OPERATOR, lambda x,y: x * y) ,
             '-' : (self.OPERATOR, lambda x,y: x - y) ,
             '/' : (self.OPERATOR, lambda x,y: x / y) ,
+            '>' : (self.INSTRUCTION, self.store('A')),
+            '<' : (self.INSTRUCTION, self.retrieve('A')),
             'O' : (self.OPERATOR, lambda x,y: y)
         })
 
         self.allSymbols = self.symbols.keys()
 
+    def appendNumber(self, symbol):
 
-    def getOperatorFunction(self, symbol):
+        # decimal place
+        if symbol == ".":
+            if not self.numberHasDecimalPlace:
+                self.numberBuilderString += symbol
+                self.numberHasDecimalPlace = True
+
+        # negative number
+        elif symbol == "N":
+            self.isNegativeNumber = not self.isNegativeNumber
+
+        else:
+            self.numberBuilderString += symbol
+
+    def finishNumber(self):
+        if self.numberBuilderString:
+            try:
+                v = float(self.numberBuilderString)
+                if self.isNegativeNumber:
+                    v = -v
+                self.operand = v
+
+            except ValueError:
+                self.operand = 0
+
+        else:
+            # possibility that this can get called with number characters like '.' and 'N' but no digits, so check
+            # for a valid number.
+            if self.operand is None:
+                self.operand = 0.0
+
+        self.numberBuilderString = ""
+        self.numberHasDecimalPlace = False
+        self.isNegativeNumber = False
+
+    def setOperator(self, symbol):
+        self.operator = self.getFunction(symbol)
+
+    def runOperatorOnNumber(self):
+        try:
+            self.information = self.operator(self.information, self.operand)
+        except ZeroDivisionError:
+            self.information = 0
+
+    def runInstruction(self, symbol):
+        self.getFunction(symbol)()
+
+
+    def getFunction(self, symbol):
         return self.symbols[symbol][1]
 
     # Methods that create new dnaStrings must all follow the same interface:
@@ -209,9 +188,6 @@ class ArithmeticGenome(GenomeBase):
         # Run while dna is same as either parent
         while [p for p in parents if p.dna == newDna]:
 
-            #
-
-
             mutationMethods = {"R" : self.mutateRandomGeneMutation,
                                "S" : self.mutateRandomCopyFromPartner,
                                "T" : self.mutateStripeToSamePlace,
@@ -235,4 +211,70 @@ class ArithmeticGenome(GenomeBase):
             if pointer >= selectionPoint:
                 return key
         assert False, "Should not reach here"
+
+
+class Runner(ArithmeticGenome):
+
+    # this language is wrong, genome is the class, dna is the string
+    def __init__(self):
+        super(Runner, self).__init__()
+
+    # steps through dna from start to end, returns final information left in this cell
+    def run(self, dna=None, individual=None, startValue = None):
+        if individual is not None:
+            dna = individual.dna
+
+        # print "Processing dna {}".format(dna)
+
+        self.operator = self.getFunction('O')
+        self.operand = None
+
+        if startValue is None:
+            self.information = 0.0
+        else:
+            self.information = startValue
+
+        self.numberBuilderString = ""
+        self.numberHasDecimalPlace = False
+        self.isNegativeNumber = False
+        self.doing = self.OPERATOR
+
+        for symbol in dna:
+            self.processSymbol(symbol)
+
+        # if ending on a number, process it
+        if self.doing == ArithmeticGenome.NUMBER:
+            self.finishNumber()
+            self.runOperatorOnNumber()
+
+        return self.information
+
+    def processSymbol(self, symbol):
+
+        type = self.getType(symbol)
+
+        # NOTE each instruction can choose which mode it leaves processing in, according to if it
+        # has left a number ready or not
+        if type == ArithmeticGenome.INSTRUCTION:
+            self.runInstruction(symbol)
+
+        elif type == ArithmeticGenome.NUMBER:
+
+            self.appendNumber(symbol)
+            self.doing = ArithmeticGenome.NUMBER
+
+        elif type == ArithmeticGenome.OPERATOR:
+
+            if self.doing == ArithmeticGenome.NUMBER:
+                self.finishNumber()
+                self.runOperatorOnNumber()
+                self.setOperator(symbol)
+                self.doing = ArithmeticGenome.OPERATOR
+
+            elif self.doing == ArithmeticGenome.OPERATOR:
+                self.setOperator(symbol)
+
+        else:
+            assert False, "Unknown Type"
+
 

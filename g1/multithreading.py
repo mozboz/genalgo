@@ -20,13 +20,27 @@ class PrintThread(threading.Thread):
             self.queue.task_done()
 
 
-class Task(object):
-    def __init__(self, problem, type, genomeConfig, populationConfig, iterations):
+class ConstantDiscoveryTask(object):
+    def __init__(self, problem, type, genomeConfig, populationConfig, iterations, printIterations = False):
         self.problem = problem
         self.type = type
         self.genomeConfig = genomeConfig
         self.populationConfig = populationConfig
         self.iterations = iterations
+        self.testSet = None
+        self.printIterations = printIterations
+
+
+class FunctionDiscoveryTask(object):
+    def __init__(self, problem, testSet, type, genomeConfig, populationConfig, iterations, printIterations = False):
+        self.problem = problem
+        self.testSet = testSet
+        self.type = type
+        self.genomeConfig = genomeConfig
+        self.populationConfig = populationConfig
+        self.iterations = iterations
+        self.printIterations = printIterations
+
 
 
 class TaskRunner(threading.Thread):
@@ -48,14 +62,15 @@ class TaskRunner(threading.Thread):
         self.systemLog.debug(self.__repr__() + " took task")
         p = Population(
             self.systemLog,
-            genomeType=task.type,
-            genomeParams=task.genomeConfig,
-            fitnessFunction=task.problem,
-            populationAndSelectionConfig=task.populationConfig
+            genomeType = task.type,
+            genomeParams = task.genomeConfig,
+            fitnessFunction = task.problem,
+            testSet = task.testSet,
+            populationAndSelectionConfig = task.populationConfig
         )
 
         start = time.time()
-        p.iterateNoInput(task.iterations, printIterations=False)
+        p.iterate(task.iterations, printIterations=task.printIterations)
         timeRan = time.time() - start
 
         logLine = "{}\t{}\t{}\t{}\t{}\t{}\t{}".\

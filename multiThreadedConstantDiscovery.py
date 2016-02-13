@@ -1,7 +1,7 @@
 
 from g1.arithmeticgenome import ArithmeticGenome
 from g1.population import Population, PopulationAndSelectionConfig
-from g1.multithreading import PrintThread, Task, TaskRunner, createAndStartPrintAndTaskQueues, goGentleIntoThatGoodNight
+from g1.multithreading import PrintThread, ConstantDiscoveryTask, TaskRunner, createAndStartPrintAndTaskQueues, goGentleIntoThatGoodNight
 from g1.individual import Individual
 
 import random
@@ -35,7 +35,7 @@ for dnaLength in range(10,51,5):
     for k in range(0,100):
         populationConfig = PopulationAndSelectionConfig(populationSize,0.0001, 0.33, 2, 0.16, 0.32, 0, 0.33, 1, 1, 1, 1, 0, 1, 0.25, 0.25, 0.4, 0.5, 1, 0)
         genomeConfig = {"length" : dnaLength}
-        t = Task(problem, ArithmeticGenome, genomeConfig, populationConfig, iterations)
+        t = ConstantDiscoveryTask(problem, ArithmeticGenome, genomeConfig, populationConfig, iterations)
         taskQueue.put(t)
 
 
