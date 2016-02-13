@@ -9,11 +9,11 @@ class PopulationAndSelectionConfig(object):
                  mutateRandomGeneMutationSelectionWeight, mutateRandomCopyFromPartnerWithPartnerSelectionWeight, mutateStripeToSamePlaceSelectionWeight,
                  mutateStripeToRandomPlaceSelectionWeight, stagnationMargin, thresholdModifierScaler,
                  mutateRandomGeneMutationProbability, mutateRandomCopyFromPartnerProbability, mutateStripeToSamePlaceProbability,
-                 mutateStripeToRandomPlaceProbability, newRandomWeight):
+                 mutateStripeToRandomPlaceProbability, newRandomWeight, generationalInbreeding):
 
         # Working example:
 
-        # populationConfig = PopulationAndSelectionConfig(60, 0.0001, 0.33, 2, 0.16, 0.32, 0.33, 1, 1, 1, 1, 1, 0, 1, 0.25, 0.25, 0.4, 0.5, 1)
+        # populationConfig = PopulationAndSelectionConfig(60, 0.0001, 0.33, 2, 0.16, 0.32, 0.33, 1, 1, 1, 1, 1, 0, 1, 0.25, 0.25, 0.4, 0.5, 1, 0)
 
         self.populationSize = populationSize # integer min/max, positive
         self.startingModifier = startingModifier # 0.0001  - float positive 0-1
@@ -42,6 +42,8 @@ class PopulationAndSelectionConfig(object):
         self.stagnationMargin = stagnationMargin # 0
         self.thresholdModifierScaler = thresholdModifierScaler # 1
 
+        self.generationalInbreeding = generationalInbreeding # 0
+
         # **** IDEA: Introduce generational modifiers to things so that they can change throughout the population
         # lifecycle. For example, each mutation methodolgy may have a modifier like 1.01 or -1.01 so that it becomes
         # more or less applied during the population's life
@@ -64,9 +66,8 @@ class Population(object):
         self.generation = 0
         self.genomeType = genomeType
         self.genomeParams = genomeParams
-        self.populationSize = populationAndSelectionConfig.populationSize
         if population is None:
-            self.population = [Individual(log, genomeType, self.generation, x, params=self.genomeParams) for x in range(1,self.populationSize)]
+            self.population = [Individual(log, genomeType, self.generation, x, params=self.genomeParams) for x in range(1,self.populationAndSelectionConfig.populationSize)]
         else:
             self.population = population
         self.fitnessFunction = fitnessFunction
@@ -76,7 +77,6 @@ class Population(object):
         self.testSet = testSet
 
         self.log = log
-
 
 
     def iterateNoInput(self, iterations = 1, printIterations = True):
@@ -92,8 +92,8 @@ class Population(object):
 
             self.newPopulation()
 
-            if x % 10 == 0:
-                raw_input("Press Enter to continue...")
+            # if x % 10 == 0:
+            #     raw_input("Press Enter to continue...")
 
         return True
 
@@ -144,6 +144,8 @@ class Population(object):
 
     def newPopulation(self):
 
+        self.generation += 1
+
         # Check stagnation
 
         # To overcome stagnation (where the population does not reach a solution, but gets so close that all individuals
@@ -166,7 +168,9 @@ class Population(object):
             self.log.debug("Modifier Increase. Before {}, multiplier {}, after {}".format(before, self.populationAndSelectionConfig.stagnationModifierMultiplier, self.thresholdModifier))
         else:
             self.thresholdModifier = self.populationAndSelectionConfig.startingModifier
-            self.avg_previous = avg_now
+            self.log.debug("Reset modifier to {}".format(self.populationAndSelectionConfig.startingModifier))
+
+        self.avg_previous = avg_now
 
         # 1 is arbitrary value that modifier must reach for cull to take effect
 
@@ -176,7 +180,7 @@ class Population(object):
             cullStart = int(len(self.population) * self.populationAndSelectionConfig.cullStartPercentage)
             cullEnd = int(len(self.population) * self.populationAndSelectionConfig.cullEndPercentage)
 
-            self.log.debug("Cull initiated @ gen {}. Pop size: {}. Cull start, end: {}, {}".format(self.generation, len(self.population), cullStart, cullEnd))
+            self.log.debug("Cull initiated @ gen {}. Pop size: {}. Cull will keep only start, end: {}, {}".format(self.generation, len(self.population), cullStart, cullEnd))
 
             self.population = self.population[cullStart:cullEnd]
 
@@ -205,7 +209,7 @@ class Population(object):
 
         genome = self.genomeType()
 
-        mutationWeights = { 
+        mutationWeights = {
             "R" : self.populationAndSelectionConfig.mutateRandomGeneMutationSelectionWeight,
             "S" : self.populationAndSelectionConfig.mutateRandomCopyFromPartnerSelectionWeight,
             "T" : self.populationAndSelectionConfig.mutateStripeToSamePlaceSelectionWeight,
@@ -222,23 +226,36 @@ class Population(object):
         }
 
 
-        idCounter = 1
+        ### EXPERIMENT WITH DIFFERENT STRATEGIES HERE
+        #
+        # There are two possible strategies when rebuilding populating:
+        # - Add them one at a time, which allows each new Individual to be created from one who was also made this generation
+        # - Create all new from the current generation, then append them as a single batch, meaning all ancestors must be
+        #   from prev gen
+        #
+        # This added to config as 'generationalInbreeding'
 
-        while(len(self.population) < self.populationAndSelectionConfig.populationSize):
+
+        idCounter = 1
+        newIndividuals = []
+
+        while(len(self.population) + len(newIndividuals) < self.populationAndSelectionConfig.populationSize):
 
             parents = random.sample(self.population, 2)
             newDna, parentsUsed, methodUsed = genome.newIndividualByRandomMutation(mutationWeights, mutationProbabilities, self.genomeParams, parents)
-            parentString = ",".join([p.identifier for p in parents])
+            parentString = ",".join([p.identifier for p in parents[0:parentsUsed]])
             parentString = parentString[:250]
-            new = Individual(self.log, self.genomeType, self.generation, id, dnaString=newDna, parentId=parentString, method=methodUsed)
-            self.population.append(new)
+            new = Individual(self.log, self.genomeType, self.generation, idCounter, dnaString=newDna, parentId=parentString, method=methodUsed)
+            if self.populationAndSelectionConfig.generationalInbreeding < 0.5: # no
+                newIndividuals.append(new)
+            else:
+                self.population.append(new)
             idCounter += 1
 
-        assert len(self.population) == self.populationSize
+        self.population.extend(newIndividuals)
+        assert len(self.population) == self.populationAndSelectionConfig.populationSize
 
         self.log.debug("end of gen " + str(self.generation))
-
-        self.generation += 1
 
     def fitness(self, actual, input=0):
         return abs(self.fitnessFunction(input) - actual)

@@ -21,7 +21,7 @@ st = datetime.datetime.fromtimestamp(time.time()).strftime('%Y%m%d%H%M%S')
 dataLogFileName = 'data/Log0.333.' + st + ".tsv"
 
 # Creates queues which facilitate multi-threaded execution of populations simultaneously, and safe multi-threaded logging
-taskQueue, printQueue = createAndStartPrintAndTaskQueues(dataLogFileName, systemLog, threads=4)
+taskQueue, printQueue = createAndStartPrintAndTaskQueues(dataLogFileName, systemLog, threads=1)
 
 ### Example to discover a constant value, looping through different dna lengths, with multi-threading
 
@@ -33,7 +33,7 @@ iterations = 500
 
 for dnaLength in range(10,51,5):
     for k in range(0,100):
-        populationConfig = PopulationAndSelectionConfig(populationSize,0.0001, 0.33, 2, 0.16, 0.32, 0, 0.33, 1, 1, 1, 1, 0, 1, 0.25, 0.25, 0.4, 0.5, 1)
+        populationConfig = PopulationAndSelectionConfig(populationSize,0.0001, 0.33, 2, 0.16, 0.32, 0, 0.33, 1, 1, 1, 1, 0, 1, 0.25, 0.25, 0.4, 0.5, 1, 0)
         genomeConfig = {"length" : dnaLength}
         t = Task(problem, ArithmeticGenome, genomeConfig, populationConfig, iterations)
         taskQueue.put(t)

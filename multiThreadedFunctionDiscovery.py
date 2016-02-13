@@ -35,7 +35,7 @@ iterations = 500
 
 for dnaLength in range(10,51,5):
     for k in range(0,100):
-        populationConfig = PopulationAndSelectionConfig(populationSize,0.0001, 0.33, 2, 0.16, 0.32, 0, 0.33, 1, 1, 1, 1, 0, 1, 0.25, 0.25, 0.4, 0.5, 1)
+        populationConfig = PopulationAndSelectionConfig(populationSize,0.0001, 0.33, 2, 0.16, 0.32, 0, 0.33, 1, 1, 1, 1, 0, 1, 0.25, 0.25, 0.4, 0.5, 1, 0)
         genomeConfig = {"length" : dnaLength}
         t = Task(problemTimesTwo, ArithmeticGenome, genomeConfig, populationConfig, iterations)
         taskQueue.put(t)

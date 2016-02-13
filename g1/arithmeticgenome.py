@@ -152,18 +152,18 @@ class ArithmeticGenome(GenomeBase):
 
     def createIndividual(self, params, parents, threshold):
         newDna = [random.choice(self.allSymbols) for x in range(params['length'])]
-        return newDna, []
+        return newDna, 0
 
      # threshold likelihood of each character being swapped for random one
     def mutateRandomGeneMutation(self, params, parents, threshold):
         dna = parents[0].dna
         newDna = [dna[x] if random.random() > threshold else random.choice(self.allSymbols) for x in range(len(dna))]
-        return newDna, parents[0:1]
+        return newDna, 1
 
     # return new dna same length as partner 1, with each character randomly selected from 1 or 2 weighted by threshold
     def mutateRandomCopyFromPartner(self, params, parents, threshold):
         newDna = [parents[0].dna[x] if random.random() > threshold else parents[1].dna[x] for x in range(len(parents[0].dna))]
-        return newDna, parents
+        return newDna, 2
 
     # threshold is max percent of characters that can be swapped
     def mutateStripeToSamePlace(self, params, parents, threshold):
@@ -174,7 +174,7 @@ class ArithmeticGenome(GenomeBase):
         # print "{} {}".format(startPoint, lengthToSwap)
 
         newDna = [parents[1].dna[x] if x in range(startPoint, startPoint + lengthToSwap) else parents[0].dna[x] for x in range(len(parents[0].dna))]
-        return newDna, parents
+        return newDna, 2
 
     # takes a random length piece of partner2 and moves it to a random place on partner 1
     def mutateStripeToRandomPlace(self, params, parents, threshold):
@@ -199,21 +199,30 @@ class ArithmeticGenome(GenomeBase):
         for x in range(0, lengthToSwap):
             newDna[startPointDest+x] = parents[1].dna[startPointSource + x]
 
-        return newDna, parents
+        return newDna, 2
 
     def newIndividualByRandomMutation(self, mutationWeights, mutationProbabilities, params, parents):
 
-        mutationMethods = {"R" : self.mutateRandomGeneMutation,
-                           "S" : self.mutateRandomCopyFromPartner,
-                           "T" : self.mutateStripeToSamePlace,
-                           "M" : self.mutateStripeToRandomPlace,
-                           "N" : self.createIndividual}
+        newDna = parents[0].dna
 
-        methodId = self.weightedChoice(mutationWeights)
+        # This critically does not allow new dna to be identical to parent
+        # Run while dna is same as either parent
+        while [p for p in parents if p.dna == newDna]:
 
-        newDna, parents = mutationMethods[methodId](params, parents, mutationProbabilities[methodId])
+            #
 
-        return newDna, parents, methodId
+
+            mutationMethods = {"R" : self.mutateRandomGeneMutation,
+                               "S" : self.mutateRandomCopyFromPartner,
+                               "T" : self.mutateStripeToSamePlace,
+                               "M" : self.mutateStripeToRandomPlace,
+                               "N" : self.createIndividual}
+
+            methodId = self.weightedChoice(mutationWeights)
+
+            newDna, parentsUsed = mutationMethods[methodId](params, parents, mutationProbabilities[methodId])
+
+        return newDna, parentsUsed, methodId
 
 
     def weightedChoice(self, choices):
