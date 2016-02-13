@@ -38,3 +38,49 @@ Fun features to maybe make next, opportunities for development:
 * Variable length 'dna'/chromosome
 * Fitness calculation factoring in account execution time or dna/chromosome length
 * As there are many factors to the evolution algorithm, it seems like a GA would be a great way to evolve the best set of parameters for the selection process itself!
+
+# the arithmetic genome
+
+There is an initial set of genes and functionality called ArithmeticGenome that support definition of a set of symbols that allow numbers and operators to be built into strings of DNA, and a 'Runner' which processes strings of these symbols of arbitrary length.
+
+There are symbols to allow numbers to be represented (NUMBERs), and symbols for functions which act on stored values and numbers found in the dna (OPERATORS).
+
+There are only two 'values' available to the Runner: A single stored value referred to as the 'Information', and any next number found in the DNA, called the 'number'. An operator is always called with:
+
+    Information = Operator(Information, Number)
+    
+Note: The operator does not have to return a value that is a function of both or either of the input values. The Operator only runs when a number is found to run on. In code, Information and Number are both floats
+
+## Examples
+
+In the examples 'I' is the initial information, 'output' refers to the value of 'I' after the dna has been processed.
+
+    I: ?
+    dna: '2*6'
+    
+In this case, output will be 12. Any initial value of I is overwritten by the first 2
+
+    I: 4
+    dna: '+2*3'
+    
+Output here will be 18. Note that as commands are executed sequentially the output here is 18, not 10 as you would expect if the expression '4+2*3' was evaluated using normal operator precedence.
+
+    I: 12
+    dna: '/4*-++17N.23NN.7'
+    
+This will first executre /4 to set I to 3. The next group of operators '*-++' are redundant - only the final '+' will be used as the operator. The string after the final + will be parsed as a single number of value -17.237, so output will be -14.237
+
+## Adding Operators
+
+Operators are defined in class ArithmeticGenome, and can be added by adding a new entry to the dict initialised in the constructor.
+
+For example, to add a logical 'AND', and exponential operations you would add the line:
+
+     ...
+     '&' : (self.OPERATOR, lambda x,y: int(x) & int(y)),                # having to translate to int is troublesome...
+     '^' : (self.OPERATOR, lambda x,y: x ^ y),
+     ...
+
+ All symbols get included in chromosome creation and mutation functions automatically, with equal precedence. Because of the evolution algorithm they will be rapidly used or evolved out of the chromosome depending on how useful they are in solving the problem.
+ 
+ 
