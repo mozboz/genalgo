@@ -2,3 +2,16 @@ data/*
 .iml
 .idea
 
+*.py[co]
+*.swp
+*.orig
+
+# Packages
+*.egg
+*.egg-info
+dist
+build
+eggs
+
+# Installer logs
+pip-log.txt
