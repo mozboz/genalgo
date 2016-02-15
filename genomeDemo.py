@@ -30,12 +30,13 @@ dna = "*2+3"    # expected output is: input*2+3. So 2 -> 7, 10 -> 23
 dna = ">*<"     # expected output is squared (stores value to storage, retrieves storage to number, multiplies value by number
 dna = "+>*7<+<+<+<*3>-7-5-N" # 3n^2 + 9n -12 (evolved)
 dna = ">/+>+<-1-1" # *2+2 (evolved)
+dna = "F92-1O+5><" # * 2 -2 (evolved)
 
 i = Individual(systemLog, ArithmeticGenome, age, "bob", dnaString=dna)
 
 runner = Runner()
 
-print runner.run(individual=i,startValue=100)
+print runner.run(individual=i,startValue=0.1)
 # print runner.run(individual=i,startValue=10)
 
 

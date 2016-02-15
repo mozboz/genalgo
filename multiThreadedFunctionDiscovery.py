@@ -36,7 +36,7 @@ class myProblem(ProblemBase):
 
     # timesTwoTestSet = [2,-16,99,-1045,0.1, -0.5, 10, -10, 7, -700, -1000]
 
-    testSet = [1,5,90,-10,225,-270,350,0.1,-0.1]
+    testDataSet = [1, 5, 90, -10, 225, -270, 350, 0.1, -0.1]
 
 populationSize=60
 iterations = 500

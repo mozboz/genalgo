@@ -21,9 +21,7 @@ class ProblemBase(object):
     BOOLEAN = 2
 
     type = None
-
-    def __init__(self):
-        self.testSet = []
+    testDataSet = None
 
     # Override with problem function, see examples below
     def problem(self, input):
@@ -44,9 +42,16 @@ class ProblemBase(object):
 
         assert False, "type not found"
 
-    def hasTestData(self):
-        return self.testSet is not None and len(self.testSet) > 0
+    @classmethod
+    def hasTestDataSet(cls):
+        return cls.testDataSet is not None and len(cls.testDataSet) > 0
 
+    # Can be invalid, so caller should call hasTestData() first
+    @classmethod
+    def getTestDataSet(cls):
+        return cls.testDataSet
+
+    # type is requried, therefore excpetion if not set
     @classmethod
     def getType(cls):
         if cls.type is None:

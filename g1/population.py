@@ -79,8 +79,8 @@ class Population(object):
 
 
     def iterate(self, iterations = 1, printIterations = False):
-        if self.problem.hasTestData():
-            self.iterateTestSet(self.problem.testSet, iterations, printIterations)
+        if self.problem.hasTestDataSet():
+            self.iterateTestSet(self.problem.getTestDataSet(), iterations, printIterations)
         else:
             self.iterateNoInput(iterations, printIterations)
 
