@@ -79,10 +79,10 @@ class Population(object):
 
 
     def iterate(self, iterations = 1, printIterations = False):
-        if self.problem.testSet is None:
-            self.iterateNoInput(iterations, printIterations)
-        else:
+        if self.problem.hasTestData():
             self.iterateTestSet(self.problem.testSet, iterations, printIterations)
+        else:
+            self.iterateNoInput(iterations, printIterations)
 
 
     def iterateNoInput(self, iterations = 1, printIterations = False):
@@ -143,6 +143,7 @@ class Population(object):
             try:
                 for testValue in testSet:
                     i.result = r.run(individual=i, startValue=testValue)
+                    self.log.debug("result {}, testValue {}".format(i.result, testValue))
                     fitness += self.problem.fitness(i.result, testValue)
 
                 i.fitness = fitness

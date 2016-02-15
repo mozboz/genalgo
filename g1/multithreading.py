@@ -65,37 +65,46 @@ class TaskRunner(threading.Thread):
 
         self.printQueue.put(logLine)
 
+class MultiThreadingContext(object):
 
-def createAndStartPrintAndTaskQueues(dataLogFileName, systemLog, threads=1):
+    def __init__(self, dataLogFileName = None, systemLog = None, numThreads = None):
+        self.printQueue = None
+        self.taskQueue = None
+        if dataLogFileName is not None and systemLog is not None and numThreads is not None:
+            self.start(dataLogFileName, systemLog, numThreads)
 
-    # print queue facilitates multi threaded writing to file and stdout
-    printQueue = Queue.Queue()
-    printThread = PrintThread(dataLogFileName, printQueue)
-    printThread.setDaemon(True)
-    printThread.start()
+    def start(self, dataLogFileName, systemLog, numThreads=1):
 
-    # Create job queue to distribute jobs to worker threads
-    taskQueue = Queue.Queue()
+        # print queue facilitates multi threaded writing to file and stdout
+        self.printQueue = Queue.Queue()
+        self.printThread = PrintThread(dataLogFileName, self.printQueue)
+        self.printThread.setDaemon(True)
+        self.printThread.start()
 
-    for k in range(0,threads):
-        p = TaskRunner(systemLog, taskQueue, printQueue)
-        p.setDaemon(True)
-        p.start()
+        # Create job queue to distribute jobs to worker threads
+        self.taskQueue = Queue.Queue()
 
-    return taskQueue, printQueue
+        for k in range(0, numThreads):
+            p = TaskRunner(systemLog, self.taskQueue, self.printQueue)
+            p.setDaemon(True)
+            p.start()
 
+    def goGentleIntoThatGoodNight(self):
 
-def goGentleIntoThatGoodNight(taskQueue, printQueue):
+        # Pause for a moment to give caller time to put stuff in the queue
+        time.sleep(1)
 
-    # These sleeps iare to prevent strange errors if we try to exit too quickly
-    time.sleep(1)
+        # Queue.join() would be neater, but stops receiving interrupt and being able to kill process easily
+        while True:
+            if self.printQueue.qsize() == 0 and self.taskQueue.qsize() == 0:
+                break
+            time.sleep(5)
 
-    # Queue.join() would be neater, but stops receiving interrupt and being able to kill process easily
-    while True:
-        if printQueue.qsize() == 0 and taskQueue.qsize() == 0:
-            break
-        time.sleep(10)
+        self.printQueue.join()
+        self.taskQueue.join()
 
-    printQueue.join()
-    taskQueue.join()
-    time.sleep(1)
+    # Pause for any remaining stuff to be written to stdout/files before execution finishes
+        time.sleep(1)
+
+    def runTask(self, t):
+        self.taskQueue.put(t)

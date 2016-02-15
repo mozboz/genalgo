@@ -22,8 +22,8 @@ class ProblemBase(object):
 
     type = None
 
-    # Override with testData, see examples below
-    testData = []
+    def __init__(self):
+        self.testSet = []
 
     # Override with problem function, see examples below
     def problem(self, input):
@@ -31,16 +31,28 @@ class ProblemBase(object):
        exit(0)
 
     def fitness(self, actual, input=0):
-        if self.type == ProblemBase.BOOLEAN:
+        type = self.getType()
+
+        if type == ProblemBase.BOOLEAN:
             if abs(actual - self.problem(input)) < 0.25:
                 return 0
             else:
                 return 1
 
-        elif self.type == ProblemBase.CONTINUOUS:
+        elif type == ProblemBase.CONTINUOUS:
             return abs(actual - self.problem(input))
 
         assert False, "type not found"
+
+    def hasTestData(self):
+        return self.testSet is not None and len(self.testSet) > 0
+
+    @classmethod
+    def getType(cls):
+        if cls.type is None:
+            raise NotImplementedError
+        else:
+            return cls.type
 
 
 ##### EXAMPLES
