@@ -1,5 +1,5 @@
 
-from genomebase import GenomeBase
+from .genomebase import GenomeBase
 import random
 
 # Includes random creation and mutation functions
@@ -17,7 +17,7 @@ class ArithmeticGenome(GenomeBase):
 
     def retrieve(self, key):
         def r():
-            if self.storage.has_key(key):
+            if key in self.storage:
                 # if was in the middle of number, then it's lost
                 if self.doing == ArithmeticGenome.NUMBER:
                     self.finishNumber()
@@ -131,13 +131,15 @@ class ArithmeticGenome(GenomeBase):
 
 
     def createIndividual(self, params, parents, threshold):
-        newDna = [random.choice(self.allSymbols) for x in range(params['length'])]
+
+        newDna = [random.choice(list(self.allSymbols)) for x in range(params['length'])]
         return newDna, 0
 
      # threshold likelihood of each character being swapped for random one
     def mutateRandomGeneMutation(self, params, parents, threshold):
         dna = parents[0].dna
-        newDna = [dna[x] if random.random() > threshold else random.choice(self.allSymbols) for x in range(len(dna))]
+        newDna = [dna[x] if random.random() > threshold else \
+            random.choice(list(self.allSymbols)) for x in range(len(dna))]
         return newDna, 1
 
     # return new dna same length as partner 1, with each character randomly selected from 1 or 2 weighted by threshold
@@ -206,8 +208,8 @@ class ArithmeticGenome(GenomeBase):
 
         total = sum(choices.values())
         selectionPoint = random.uniform(0,total)
-        pointer = 0
-        for key, value in choices.iteritems():
+        pointer = 0        
+        for key, value in choices.items():
             pointer += value
             if pointer >= selectionPoint:
                 return key
@@ -260,7 +262,7 @@ class Runner(ArithmeticGenome):
             self.runInstruction(symbol)
 
         elif type == ArithmeticGenome.NUMBER:
-            if self.doing <> ArithmeticGenome.NUMBER:
+            if self.doing != ArithmeticGenome.NUMBER:
                 self.operand = 0
 
             self.appendNumber(symbol)

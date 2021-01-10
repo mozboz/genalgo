@@ -1,22 +1,22 @@
-
 import datetime, time
 import threading
-import Queue
-from population import Population
+import queue
+
+from .population import Population
 
 class PrintThread(threading.Thread):
     def __init__(self, filename, printQueue):
         threading.Thread.__init__(self)
         self.queue = printQueue
         self.f = open(filename, 'a')
-        print "Data log started: " + filename
+        print("Data log started: " + filename)
         self.f.write("{}\t{}\t{}\t{}\t{}\t{}\t{}\n".format("Completed","Time","Generation","Min Fitness","Pop Size", "DNA Length", "Best DNA"))
 
     def run(self):
         while True:
             logEntry = self.queue.get()
             self.f.write(logEntry + "\n")
-            print logEntry
+            print(logEntry)
             self.queue.task_done()
 
 class Task(object):
@@ -36,7 +36,7 @@ class TaskRunner(threading.Thread):
         self.taskQueue = taskQueue
         self.printQueue = printQueue
         self.systemLog = systemLog
-        print "TaskRunner started " + self.__repr__()
+        print("TaskRunner started " + self.__repr__())
 
     def run(self):
         while True:
@@ -76,15 +76,15 @@ class MultiThreadingContext(object):
     def start(self, dataLogFileName, systemLog, numThreads=1):
 
         # print queue facilitates multi threaded writing to file and stdout
-        self.printQueue = Queue.Queue()
+        self.printQueue = queue.Queue()
         self.printThread = PrintThread(dataLogFileName, self.printQueue)
         self.printThread.setDaemon(True)
         self.printThread.start()
 
         # Create job queue to distribute jobs to worker threads
-        self.taskQueue = Queue.Queue()
+        self.taskQueue = queue.Queue()
 
-        for k in range(0, numThreads):
+        for _ in range(0, numThreads):
             p = TaskRunner(systemLog, self.taskQueue, self.printQueue)
             p.setDaemon(True)
             p.start()

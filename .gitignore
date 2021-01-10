@@ -1,6 +1,8 @@
 data/*
 .iml
 .idea
+*workspace
+*env
 
 *.py[co]
 *.swp

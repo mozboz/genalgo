@@ -9,7 +9,7 @@ logFormat = '%(asctime)-15s %(message)s'
 logging.basicConfig(format=logFormat)
 random.seed()
 systemLog = logging.getLogger(__name__)
-systemLog.setLevel(logging.WARNING)
+systemLog.setLevel(logging.DEBUG)
 
 age = 0
 
@@ -36,7 +36,7 @@ i = Individual(systemLog, ArithmeticGenome, age, "bob", dnaString=dna)
 
 runner = Runner()
 
-print runner.run(individual=i,startValue=0.1)
+print(runner.run(individual=i,startValue=0.1))
 # print runner.run(individual=i,startValue=10)
 
 

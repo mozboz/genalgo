@@ -25,7 +25,7 @@ class ProblemBase(object):
 
     # Override with problem function, see examples below
     def problem(self, input):
-       print "Redefine me with a problem that returns a constant or function of input"
+       print("Redefine me with a problem that returns a constant or function of input")
        exit(0)
 
     def fitness(self, actual, input=0):

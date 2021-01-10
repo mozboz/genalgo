@@ -91,7 +91,7 @@ class Population(object):
             self.evaluateNoInput()
 
             if printIterations:
-                print self.dump(10)
+                print(self.dump(10))
 
             if self.finished():
                 return False
@@ -120,7 +120,7 @@ class Population(object):
             self.evaluateTestSet(testSet)
 
             if printIterations:
-                print self.dump(10)
+                print(self.dump(10))
 
             if self.finished():
                 return False
